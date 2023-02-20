@@ -1,0 +1,22 @@
+{
+  "domain": "pki.example.com",
+  "ns_domain": "ns1.pki.example.com",
+  "ns_admin": "dns-admin@example.com",
+  "txt_store_state_path": "data.json",
+  "api_bind_addr": "127.0.0.1:3000",
+  "api_timeout": 120,
+  "dns_udp_bind_addr": "127.0.0.1:5353",
+  "dns_tcp_bind_addr": "127.0.0.1:5353",
+  "dns_tcp_timeout": 60,
+  "acl": {
+    "127.0.0.1/32": [ "test" ],
+    "10.0.0.0/32": [ "test", "test2" ]
+  },
+  "addrs": {
+    "pki.example.com": ["93.184.216.34", "2606:2800:220:1:248:1893:25c8:1946" ],
+    "ns1.pki.example.com": ["93.184.216.34", "2606:2800:220:1:248:1893:25c8:1946" ]
+  },
+  "ns_records": {
+    "pki.example.com": [ "ns1.pki.example.com" ]
+  }
+}

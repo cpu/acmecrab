@@ -1,0 +1,27 @@
+[package]
+name = "acmecrab"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.69"
+async-trait = "0.1.64"
+axum = "0.6.7"
+axum-extra = "0.5.0"
+base64 = "0.21.0"
+hyper = "0.14.24"
+ipnetwork = "0.20.0"
+is-terminal = "0.4.4"
+lazy_static = "1.4.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.68"
+serde_with = "2.2.0"
+thiserror = "1.0.38"
+time = { version = "0.3.20", features = ["formatting", "macros"] }
+tokio = { version = "1.0", features = ["rt-multi-thread", "macros", "signal", "fs"] }
+tower-http = { version = "0.3.5", features = ["timeout", "trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+trust-dns-client = { version = "0.22.0", features = ["serde", "serde-config"] }
+trust-dns-proto = { version = "0.22.0", features = ["serde"] }
+trust-dns-server = "0.22.0"

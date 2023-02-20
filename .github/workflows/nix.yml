@@ -1,0 +1,55 @@
+name: Lint and Build
+
+on:
+  push:
+    branches:
+      - main
+      - "test-*"
+    tags:
+      - "v*.*.*"
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check_nix:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: git checkout
+        uses: actions/checkout@v3
+      - name: Install Nix
+        uses: cachix/install-nix-action@v19
+
+      - name: Format
+        run: |
+          nix develop --command \
+            cargo fmt --check
+
+      - name: Clippy
+        run: |
+          nix develop --command \
+            cargo clippy -- -Dwarnings
+
+      - name: Audit
+        run: |
+          nix develop --command \
+            cargo audit --deny warnings
+
+  build_and_test_nix:
+    name: Test and build
+    needs: check_nix
+    runs-on: ubuntu-latest
+    steps:
+      - name: git checkout
+        uses: actions/checkout@v3
+      - name: Install Nix
+        uses: cachix/install-nix-action@v19
+
+      - name: Test
+        run: |
+          nix develop --command \
+            cargo test --locked
+
+      - name: Build
+        run: nix build
