@@ -29,7 +29,7 @@ Self-hosted option for securely allowing ACME clients to update TXT records to s
 
 ## Status
 
-**Not quite complete and very BETA. Use at your own risk.**.
+**Not quite complete and very BETA. Use at your own risk. Expect force pushes and history rewriting on main.**.
 
 ## Features
 
@@ -286,11 +286,12 @@ There are a few things left to do before considering ACME Crab "ready":
 * [ ] NixOS module - [#1]
 * [ ] Unit tests - [#2]
 * [ ] Integration tests - [#3]
-* Field testing.
+* [ ] Field testing. - [#4]
 
 [#1]: https://github.com/cpu/acmecrab/issues/1
 [#2]: https://github.com/cpu/acmecrab/issues/2
 [#3]: https://github.com/cpu/acmecrab/issues/3
+[#4]: https://github.com/cpu/acmecrab/issues/4
 
 ## Credits
 
