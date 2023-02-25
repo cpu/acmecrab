@@ -36,7 +36,8 @@ Self-hosted option for securely allowing ACME clients to update TXT records to s
 * Simple acme-dns compatible [update API] for ACME clients to provision
   TXT records. Works out-of-box with ACME clients compatible with [acme-dns].
 * Answers [RFC-8555][RFC-8555] [DNS-01] challenges with provisioned records.
-* Supports serving additional static A/AAAA records.
+* Supports serving additional static A/AAAA/NS records.
+* Listens for DNS queries over both UDP and TCP.
 * Memory safe, asynchronous Rust implementation.
 * Packaged as a [Nix] Flake.
 
@@ -67,15 +68,15 @@ For now: [install from source](#Building-from-Source) and then set up some kind 
 
 ## Configuration
 
-ACME Crab uses a simple JSON configuration format.
+ACME Crab uses a simple JSON configuration format. Unless otherwise specified all keys are mandatory.
 
 | Key                    | Value                     | Description                                                                                                                                                                                                                           | 
 |------------------------|---------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `domain`               | FQDN                      | Fully qualified domain name for the ACME Crab server. All TXT records must be subdomains of this FQDN.                                                                                                                                |
 | `ns_domain`            | FQDN                      | Fully qualified domain name for the nameserver to use in the SOA record for `domain`.                                                                                                                                                 |  
-| `ns_admin`             | Email                     | Email address of the `ns_domain` administrator. Translated to record format (e.g. `foo@example.com` -> `foo.example.com` automatically.                                                                                               |
+| `ns_admin`             | Email                     | Email address of the `ns_domain` administrator. Translated to record format (e.g. `foo@example.com` -> `foo.example.com`) automatically.                                                                                               |
 | `txt_store_state_path` | (Optional) file path      | Path to a JSON data file for persisting TXT records across shutdown. E.g. `"/var/lib/acmecrab/data.json"`. Created at startup if it does not exist. If omitted, TXT records are kept in-memory only and are ephemeral across reboots. |
-| `api_bind_addr`        | IP:port                   | Bind address for HTTP API. E.g. `127.0.0.1:3000`                                                                                                                                                                                      |
+| `api_bind_addr`        | IP:port                   | Bind address for HTTP API. Must be a loopback address or private network. E.g. `127.0.0.1:3000`                                                                                                                                                                                      |
 | `api_timeout`          | # of seconds              | Maximum duration for an API request before timing out, expressed in seconds, E.g. `120`.                                                                                                                                              |
 | `dns_udp_bind_addr`    | IP:port                   | UDP bind address for DNS API. E.g. `127.0.0.1:52`                                                                                                                                                                                     |
 | `dns_tcp_bind_addr`    | IP:port                   | TCP bind address for DNS API. E.g. `127.0.0.1:52`                                                                                                                                                                                     |
@@ -85,7 +86,7 @@ ACME Crab uses a simple JSON configuration format.
 | `ns_records`           | See additional addresses. | A map of fully qualified domains to domain values that should be returned for NS lookups.                                                                                                                                             |                                      
 ### ACL
 
-The ACME Crab access control assumes you're using [cryptokey] routing and can infer trusted identity from source IP. The configuration file maps between CIDR networks and subdomains. ACME clients within a specified CIDR network can update TXT records for the listed subdomains.
+The ACME Crab access control assumes you're using [cryptokey routing] and can infer trusted identity from source IP. The configuration file maps between CIDR networks and subdomains. ACME clients within a specified CIDR network can update TXT records for the listed subdomains using the HTTP API. Update API requests from IPs outside of the listed networks will be forbidden. Update API requests from approved networks for a subdomain not listed in the network's ACL will be forbidden.
 
 E.g. if we have an ACL config:
 ```json
@@ -104,7 +105,7 @@ Then only source IP `10.0.0.5` can set TXT records for `foo.pki.example.com`, an
 
 ### Additional Addresses
 
-Above and beyond dynamic TXT records ACME Crab can return static A, AAAA and NS based on your configuration. A and AAAA records are set by fully qualified domain name under the `addrs` key. NS records are set by fully qualified domain name under the `ns_records` key.
+Above and beyond dynamic TXT records ACME Crab can return static A, AAAA and NS records based on your configuration. A and AAAA records are set by fully qualified domain name under the `addrs` key. NS records are set by fully qualified domain name under the `ns_records` key.
 
 E.g. if we have the config:
 ```json
@@ -112,7 +113,7 @@ E.g. if we have the config:
   ...
   "addrs": {
     "ipv4.example.com": ["93.184.216.34"],
-    "dual.example.com": [["93.184.216.34", "2606:2800:220:1:248:1893:25c8:1946" ]]
+    "dual.example.com": ["93.184.216.34", "2606:2800:220:1:248:1893:25c8:1946" ]
   },
   "ns_records": {
     "dual.example.com": ["ns1.pki.example.com"]
@@ -170,14 +171,14 @@ For each domain you wish to manage with ACME Crab you must add a `CNAME` record 
 E.g. if I'm running ACME Crab at `pki.example.com` and want to use it to authorize issuance for `test-www.example.com` I would update the `example.com` DNS zone to add a `CNAME` record like:
 
 ```
-_acme-challenge.www.examplecom.	3600	CNAME	test-www.pki.example.com.
+_acme-challenge.test-www.example.com.	3600	CNAME	test-www.pki.example.com.
 ```
 
 ## ACME Client Setup
 
-Configure your ACME client to use the ACME-DNS solution method. Specify the ACME DNS server as the address of your ACME Crab instance. Details vary by ACME client.
+Configure your ACME client to use the "acme-dns" solution method. Specify the acme-dns server as the address of your ACME Crab instance. Details vary by ACME client.
 
-For example, using [Lego]:
+For example, using [Lego] with ACME Crab running its HTTP API at `10.0.0.1:3000`:
 
 ```
 ACME_DNS_API_BASE=http://10.0.0.1:3000 \
@@ -196,32 +197,35 @@ Consult your ACME client documentation for more information.
 ## Why use ACME Crab?
 
 * You have one or more ACME clients issuing certificates for your domains.
-* Your ACME clients have plugins to support ACME-DNS.
+* Your ACME clients have plugins to support [acme-dns].
 * You want to use the DNS-01 challenge type to authorize issuance for your domains.
 * You don't want to give your ACME clients free reign to update records in your DNS zones.
   * Or, you _can't_ dynamically update records in your DNS zones because your authoritative DNS provider has no API, or a shitty API.
 * You already have a trusted encrypted link between where your ACME clients run, and where you want to run ACME Crab suitable for [cryptokey routing]. E.g. a Wireguard tunnel, or some kind of Tailscale setup.
+* You're comfortable with all of the above terminology and expect limited to no support from the author.
 * You like Rust, and minimal software.
 
 ### Why not acme-dns?
 
-I <3 [acme-dns]. It's a great project! If you want something battle tested and full featured, give it a go. You might prefer ACME crab if:
+I <3 [acme-dns]. It's a great project! If you want something battle tested and full featured, give it a go. You may prefer ACME Crab instead of [acme-dns] if:
 
-* You don't want the hassle of usernames/passwords because you're relying on authentication at the network layer.
-* You don't want the hassle of HTTPS for the update API, because you're relying on encryption at the network layer.
-* You don't want the hassle of a database backend (even SQLite), because ACME DNS-01 challenge responses are ephemeral, mostly read, and require no sophisticated query patterns.
+* You don't want the hassle of API usernames/passwords because you're relying on authentication at the network layer.
+* You don't want the hassle of HTTPS for the API, because you're relying on encryption at the network layer.
+* You don't want the hassle of a database backend (even SQLite), because ACME DNS-01 challenge responses are ephemeral, seldom updated, and require no sophisticated query patterns.
 * You like crabs more than gophers.
 
 ### Why not RFC-2136?
 
-The venerable [RFC-2136] offers a provider independent way to dynamically update DNS records. Many ACME clients have a plugin to support using this method for updating TXT records to respond to DNS-01 challenges. You may prefer ACME crab if:
+The venerable [RFC-2136] offers a provider independent way to dynamically update DNS records. Many ACME clients have a plugin to support using this method for updating TXT records to respond to DNS-01 challenges. You may prefer ACME Crab instead of [RFC-2136] if:
 
-* Your provider doesn't offer RFC-2136 support. ACME crab only requires a one time CNAME addition in your authoritative zone.
-* You want tight control over the allowed updates. ACME Crab only allows updating TXT records and enforces that the value is a RFC 8555 compliant DNS-01 challenge response value.
+* Your authoritative DNS provider doesn't offer RFC-2136 support. ACME Crab only requires a one time CNAME addition in your authoritative zone. No API or RFC-2136 support is needed.
+* You want tight control over the allowed updates. ACME Crab only allows updating TXT records and enforces that update values are RFC 8555 compliant DNS-01 challenge response values. An ACME client can never use ACME Crab to change an A, AAAA, MX or NS record in your zone. Similarly an ACME client can never use ACME Crab to publish arbitrary content under a TXT record.
 
 [RFC-2136]: https://www.rfc-editor.org/rfc/rfc2136
 
 ## API Examples
+
+_Note: These actions are typically undertaken by your ACME client using a compatible acme-dns plugin. These examples are useful for testing only._
 
 ```bash
 # Healthcheck
@@ -274,6 +278,19 @@ cargo build --release
 ```
 
 [Rust]: https://www.rust-lang.org/tools/install
+
+## TODO
+
+There are a few things left to do before considering ACME Crab "ready":
+
+* [ ] NixOS module - [#1]
+* [ ] Unit tests - [#2]
+* [ ] Integration tests - [#3]
+* Field testing.
+
+[#1]: https://github.com/cpu/acmecrab/issues/1
+[#2]: https://github.com/cpu/acmecrab/issues/2
+[#3]: https://github.com/cpu/acmecrab/issues/3
 
 ## Credits
 
