@@ -266,7 +266,7 @@ _Note: These actions are typically undertaken by your ACME client using a compat
 1. Install [Nix] v2.4+.
 2. Build ACME Crab:
 ```
-nix build
+nix build github:cpu/acmecrab
 ```
 
 ### Cargo
