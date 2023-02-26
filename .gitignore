@@ -1,4 +1,6 @@
 /target
 /.idea
+/.tmp
 /result
 /data.json
+/notes.txt
