@@ -7,7 +7,7 @@ use trust_dns_server::proto::error::ProtoError;
 pub enum Error {
     #[error("not implemented")]
     NotImplemented,
-    #[error("IP {0} is not authorized to update {1:?}")]
+    #[error("IP {0} is not authorized to update \"{1}\"")]
     AuthForbidden(IpAddr, LowerName),
     #[error(transparent)]
     JsonExtractorRejection(#[from] JsonRejection),
