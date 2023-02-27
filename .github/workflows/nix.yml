@@ -36,6 +36,10 @@ jobs:
           nix develop --command \
             cargo audit --deny warnings
 
+      - name: Flake Check
+        run: |
+          nix flake check
+
   build_and_test_nix:
     name: Test and build
     needs: check_nix

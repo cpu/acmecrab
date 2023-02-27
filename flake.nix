@@ -17,7 +17,7 @@
 
   outputs = { self, nixpkgs, utils, rust-overlay, crate2nix, ... }:
     let name = "acmecrab";
-    in utils.lib.eachDefaultSystem (system:
+    in utils.lib.eachSystem [ utils.lib.system.x86_64-linux ] (system:
       let
         pkgs = import nixpkgs {
           inherit system;
@@ -66,7 +66,7 @@
         packages.${name} = project.rootCrate.build;
 
         # `nix build`
-        defaultPackage = packages.${name};
+        packages.default = packages.${name};
 
         # `nix run`
         apps.${name} = utils.lib.mkApp {
@@ -76,11 +76,15 @@
         apps.default = apps.${name};
 
         # `nix develop`
-        devShell = pkgs.mkShell {
+        devShells.default = pkgs.mkShell {
           inherit nativeBuildInputs;
           RUST_SRC_PATH =
             "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
           RUST_TOOLCHAIN_PATH = "${rust-toolchain}";
         };
-      });
+      }) // {
+        # Nix OS module.
+        nixosModules.default = { config, lib, pkgs, ... }:
+          import ./module/default.nix { inherit config lib pkgs self; };
+      };
 }
