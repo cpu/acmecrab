@@ -283,7 +283,7 @@ cargo build --release
 
 There are a few things left to do before considering ACME Crab "ready":
 
-* [ ] NixOS module - [#1]
+* [X] NixOS module - [#1]
 * [ ] Unit tests - [#2]
 * [ ] Integration tests - [#3]
 * [ ] Field testing. - [#4]
