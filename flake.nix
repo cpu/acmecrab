@@ -82,5 +82,9 @@
             "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
           RUST_TOOLCHAIN_PATH = "${rust-toolchain}";
         };
-      });
+      }) // {
+        # Nix OS module.
+        nixosModules.default = { config, lib, pkgs, ... }:
+          import ./module/default.nix { inherit config lib pkgs self; };
+      };
 }
