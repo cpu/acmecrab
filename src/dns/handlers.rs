@@ -60,6 +60,14 @@ impl Handler {
             return self.handle_notimpl(request, response).await;
         }
 
+        // If we have a static CNAME configured for the query name, send it.
+        let query_name = request.query().name();
+        if self.config.cname_records.get(query_name).is_some() {
+            return self
+                .send_auth_resp(request, response, self.cname_data(query_name))
+                .await;
+        }
+
         // Otherwise handle by query type, or return NOTIMPL.
         match request.query().query_type() {
             RecordType::TXT => self.handle_request_txt(request, response).await,
@@ -88,6 +96,7 @@ impl Handler {
         response_handle: R,
     ) -> Result<ResponseInfo, Error> {
         let query_name = request.query().name();
+
         if self.txt_domain_set.get(query_name).is_none() {
             return self.send_nxdomain(request, response_handle).await;
         }
@@ -196,6 +205,13 @@ impl Handler {
             .map_or(Vec::default(), Clone::clone)
     }
 
+    fn cname_targets_from_config(&self, fqdn: &LowerName) -> Vec<LowerName> {
+        self.config
+            .cname_records
+            .get(fqdn)
+            .map_or(Vec::default(), Clone::clone)
+    }
+
     fn a_rdata(&self, fqdn: &LowerName) -> Vec<RData> {
         self.addrs_from_config(fqdn)
             .iter()
@@ -220,6 +236,13 @@ impl Handler {
         self.ns_names_from_config(fqdn)
             .iter()
             .map(|n| RData::NS(n.into()))
+            .collect()
+    }
+
+    fn cname_data(&self, fqdn: &LowerName) -> Vec<RData> {
+        self.cname_targets_from_config(fqdn)
+            .iter()
+            .map(|n| RData::CNAME(n.into()))
             .collect()
     }
 

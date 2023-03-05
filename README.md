@@ -74,16 +74,17 @@ ACME Crab uses a simple JSON configuration format. Unless otherwise specified al
 |------------------------|---------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `domain`               | FQDN                      | Fully qualified domain name for the ACME Crab server. All TXT records must be subdomains of this FQDN.                                                                                                                                |
 | `ns_domain`            | FQDN                      | Fully qualified domain name for the nameserver to use in the SOA record for `domain`.                                                                                                                                                 |  
-| `ns_admin`             | Email                     | Email address of the `ns_domain` administrator. Translated to record format (e.g. `foo@example.com` -> `foo.example.com`) automatically.                                                                                               |
+| `ns_admin`             | Email                     | Email address of the `ns_domain` administrator. Translated to record format (e.g. `foo@example.com` -> `foo.example.com`) automatically.                                                                                              |
 | `txt_store_state_path` | (Optional) file path      | Path to a JSON data file for persisting TXT records across shutdown. E.g. `"/var/lib/acmecrab/data.json"`. Created at startup if it does not exist. If omitted, TXT records are kept in-memory only and are ephemeral across reboots. |
-| `api_bind_addr`        | IP:port                   | Bind address for HTTP API. Must be a loopback address or private network. E.g. `127.0.0.1:3000`                                                                                                                                                                                      |
+| `api_bind_addr`        | IP:port                   | Bind address for HTTP API. Must be a loopback address or private network. E.g. `127.0.0.1:3000`                                                                                                                                       |
 | `api_timeout`          | # of seconds              | Maximum duration for an API request before timing out, expressed in seconds, E.g. `120`.                                                                                                                                              |
 | `dns_udp_bind_addr`    | IP:port                   | UDP bind address for DNS API. E.g. `127.0.0.1:52`                                                                                                                                                                                     |
 | `dns_tcp_bind_addr`    | IP:port                   | TCP bind address for DNS API. E.g. `127.0.0.1:52`                                                                                                                                                                                     |
 | `dns_tcp_timeout`      | # of seconds              | Maximum duration for a TCP DNS request before timing out, expressed in seconds. E.g. `60`                                                                                                                                             |
 | `acl`                  | See ACL.                  | A map of CIDR networks and  subdomains IPs within that network can updated TXT records for.                                                                                                                                           |
 | `addrs`                | See additional addresses. | A map of fully qualified domains and IP addresses that should be used for A/AAAA queries for each domain.                                                                                                                             |
-| `ns_records`           | See additional addresses. | A map of fully qualified domains to domain values that should be returned for NS lookups.                                                                                                                                             |                                      
+| `ns_records`           | See additional addresses. | A map of fully qualified domains to domain values that should be returned for NS lookups.                                                                                                                                             |
+| `cname_records`        | See additional addresses. | A map of fully qualified domains to CNAME target domain values that should be returned for all lookups.                                                                                                                               |     
 ### ACL
 
 The ACME Crab access control assumes you're using [cryptokey routing] and can infer trusted identity from source IP. The configuration file maps between CIDR networks and subdomains. ACME clients within a specified CIDR network can update TXT records for the listed subdomains using the HTTP API. Update API requests from IPs outside of the listed networks will be forbidden. Update API requests from approved networks for a subdomain not listed in the network's ACL will be forbidden.
@@ -105,7 +106,7 @@ Then only source IP `10.0.0.5` can set TXT records for `foo.pki.example.com`, an
 
 ### Additional Addresses
 
-Above and beyond dynamic TXT records ACME Crab can return static A, AAAA and NS records based on your configuration. A and AAAA records are set by fully qualified domain name under the `addrs` key. NS records are set by fully qualified domain name under the `ns_records` key.
+Above and beyond dynamic TXT records ACME Crab can return static A, AAAA and NS records based on your configuration. A and AAAA records are set by fully qualified domain name under the `addrs` key. NS records are set by fully qualified domain name under the `ns_records` key. CNAME records are set by fully qualified domain name under the `cname_records` key.
 
 E.g. if we have the config:
 ```json
@@ -118,11 +119,14 @@ E.g. if we have the config:
   "ns_records": {
     "dual.example.com": ["ns1.pki.example.com"]
   },
+  "cname_records": {
+    "_acme-challenge.test.example.com": [ "test.pki.example.com" ]
+  },
   ...
 }
 ```
 
-Then A lookups for `ipv4.example.com` or `dual.example.com` will return `93.184.216.34`, and AAAA lookups for `dual.example.com` will return `2606:2800:220:1:248:1893:25c8:1946`. NS lookups for `dual.example.com` will return `ns1.pki.example.com`.
+Then A lookups for `ipv4.example.com` or `dual.example.com` will return `93.184.216.34`, and AAAA lookups for `dual.example.com` will return `2606:2800:220:1:248:1893:25c8:1946`. NS lookups for `dual.example.com` will return `ns1.pki.example.com`. Lookups for any record type for `_acme-challenge.test.example.com` will return a CNAME to `test.pki.example.com`.
 
 ### Example Configuration
 
@@ -147,6 +151,9 @@ Then A lookups for `ipv4.example.com` or `dual.example.com` will return `93.184.
   },
   "ns_records": {
     "pki.example.com": [ "ns1.pki.example.com" ]
+  },
+  "cname_records": {
+    "_acme-challenge.test.example.com": [ "test.pki.example.com" ]
   }
 }
 ```
@@ -161,6 +168,7 @@ This configuration:
 * Accepts TXT updates via the HTTP API from `127.0.0.1/32` for `test.pki.example.com`, and from `10.0.0.0/32` for `test2.pki.example.com` and `test3.pki.example.com`.
 * Returns `93.184.216.34` for `A` lookups and `2606:2800:220:1:248:1893:25c8:1946` for `AAAA` lookups for `pki.example.com` and `ns1.pki.example.com`.
 * Returns `ns1.pki.example.com` for `NS` lookups for `pki.example.com`.
+* Returns CNAME redirection to `test.pki.example.com` for all lookups for `_acme-challenge.test.example.com`.
 
 ## Initial DNS Setup
 

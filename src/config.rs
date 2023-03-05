@@ -33,6 +33,7 @@ pub(crate) struct Config {
     pub acl: HashMap<IpNetwork, HashSet<LowerName>>,
     pub addrs: HashMap<LowerName, Vec<IpAddr>>,
     pub ns_records: HashMap<LowerName, Vec<LowerName>>,
+    pub cname_records: HashMap<LowerName, Vec<LowerName>>,
 }
 
 lazy_static! {

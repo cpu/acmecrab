@@ -18,5 +18,8 @@
   },
   "ns_records": {
     "pki.example.com": [ "ns1.pki.example.com" ]
+  },
+  "cname_records": {
+    "_acme-challenge.test.example.com": [ "test.pki.example.com" ]
   }
 }

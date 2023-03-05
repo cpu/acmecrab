@@ -145,6 +145,20 @@ in {
         returned for NS lookups. 
       '';
     };
+
+    cname_records = mkOption {
+      type = types.submodule {
+        freeformType = types.attrsOf (types.listOf types.str);
+      };
+      default = { };
+      example = {
+        "_acme_challenge.test.example.com" = [ "test.pki.example.com" ];
+      };
+      description = ''
+        A map of fully qualified domains to CNAME target domain values that should be 
+        returned for all lookups for the listed domain.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -176,8 +190,8 @@ in {
 
     environment.etc."${name}.json".source = with cfg;
       settingsFormat.generate "${name}-config.json" {
-        inherit domain ns_domain ns_admin txt_store_state_path api_timeout acl
-          addrs ns_records dns_tcp_timeout;
+        inherit domain ns_domain ns_admin txt_store_state_path api_timeout
+          dns_tcp_timeout acl addrs ns_records cname_records;
         api_bind_addr = "${api_addr}:${toString api_port}";
         dns_udp_bind_addr = "${dns_udp_addr}:${toString dns_port}";
         dns_tcp_bind_addr = "${dns_tcp_addr}:${toString dns_port}";
