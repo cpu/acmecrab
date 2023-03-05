@@ -88,6 +88,7 @@
         # Example container.
         # `sudo nixos-container create acmecrab --flake .#container`
         # `sudo nixos-container start acmecrab`
+        # `dig @10.233.1.2 pki.example.com A`
         nixosConfigurations.container = let
           # NOTE(XXX): These values must match the output from `nixos-container create`.
           host_ip = "10.233.1.1";
