@@ -168,7 +168,7 @@ in {
       serviceConfig = {
         Restart = "on-failure";
         ExecStart = "${pkgs.acmecrab}/bin/${name} /etc/${name}.json";
-        Environment = "RUST_LOG=${name}=debug";
+        Environment = "RUST_LOG=${name}=debug,trust_dns_server=debug";
         DynamicUser = "yes";
         RuntimeDirectory = name;
         RuntimeDirectoryMode = "0755";
