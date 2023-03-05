@@ -5,7 +5,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug, Clone, Default, Ord, PartialOrd, Eq, PartialEq)]
 pub(super) struct UpdateRecordRequest {
+    #[serde(alias = "SubDomain")]
     pub subdomain: String,
+    #[serde(alias = "Txt")]
     pub txt: String,
 }
 
