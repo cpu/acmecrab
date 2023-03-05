@@ -1,12 +1,13 @@
-{ self, config, lib, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 with lib;
 let
-  cfg = config.services.acmecrab;
+  name = "acmecrab";
+  cfg = config.services.${name};
   settingsFormat = pkgs.formats.json { };
 in {
   # TODO(XXX): Additional validation checks/typing. E.g. of CIDR networks, FQDNs.
-  options.services.acmecrab = {
-    enable = mkEnableOption "Enable the acmecrab service";
+  options.services.${name} = {
+    enable = mkEnableOption "Enable the ${name} service";
 
     domain = mkOption {
       type = types.str;
@@ -22,7 +23,7 @@ in {
       example = "ns1.pki.example.com";
       description = ''
         Fully qualified domain name for the nameserver to use in the SOA 
-        record for options.services.acmecrab.domain.
+        record for options.services.${name}.domain.
       '';
     };
 
@@ -30,7 +31,7 @@ in {
       type = types.str;
       example = "dns-admin@example.com";
       description = ''
-        Email address of the options.services.acmecrab.ns_domain
+        Email address of the options.services.${name}.ns_domain
         administrator. Translated to record format (e.g.
         "foo@example.com" -> "foo.example.com") automatically.
       '';
@@ -39,19 +40,27 @@ in {
     # TODO(XXX): Make state optional.
     txt_store_state_path = mkOption {
       type = types.str;
-      default = "/var/lib/acmecrab/txt_records.json";
+      default = "/var/lib/${name}/txt_records.json";
       description = ''
         Path to a JSON data file for persisting TXT records across 
         shutdown. Created at startup if it does not exist.
       '';
     };
 
-    api_bind_addr = mkOption {
+    api_addr = mkOption {
       type = types.str;
-      example = "10.233.1.2:8080";
+      example = "10.233.1.2";
       description = ''
         Bind address for HTTP API. Must be a loopback address or
         private network.
+      '';
+    };
+
+    api_port = mkOption {
+      type = types.numbers.positive;
+      default = 8080;
+      description = ''
+        Port for the HTTP API on the api_addr bind address.
       '';
     };
 
@@ -64,19 +73,27 @@ in {
       '';
     };
 
-    dns_udp_bind_addr = mkOption {
+    dns_port = mkOption {
+      type = types.numbers.positive;
+      default = 53;
+      description = ''
+        Port for the HTTP API on the api_addr bind address.
+      '';
+    };
+
+    dns_udp_addr = mkOption {
       type = types.str;
-      default = "0.0.0.0:53";
-      example = "10.233.1.2:53";
+      default = "0.0.0.0";
+      example = "10.233.1.2";
       description = ''
         Bind address for UDP DNS server.
       '';
     };
 
-    dns_tcp_bind_addr = mkOption {
+    dns_tcp_addr = mkOption {
       type = types.str;
-      default = "0.0.0.0:53";
-      example = "10.233.1.2:53";
+      default = "0.0.0.0";
+      example = "10.233.1.2";
       description = ''
         Bind address for TCP DNS server.
       '';
@@ -131,21 +148,19 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    systemd.services.acmecrab = {
+    systemd.services.${name} = {
       wantedBy = [ "multi-user.target" ];
-      serviceConfig = let
-        pkg = self.packages.${pkgs.system}.acmecrab;
-        # TODO(XXX): this is a decent start on hardening options but we can do better.
-      in {
+      # TODO(XXX): this is a decent start on hardening options but we can do better.
+      serviceConfig = {
         Restart = "on-failure";
-        ExecStart = "${pkg}/bin/acmecrab /etc/acmecrab.json";
-        Environment = "RUST_LOG=acmecrab=debug";
+        ExecStart = "${pkgs.acmecrab}/bin/${name} /etc/${name}.json";
+        Environment = "RUST_LOG=${name}=debug";
         DynamicUser = "yes";
-        RuntimeDirectory = "acmecrab";
+        RuntimeDirectory = name;
         RuntimeDirectoryMode = "0755";
-        StateDirectory = "acmecrab";
+        StateDirectory = name;
         StateDirectoryMode = "0700";
-        CacheDirectory = "acmecrab";
+        CacheDirectory = name;
         CacheDirectoryMode = "0750";
         AmbientCapabilities = "CAP_NET_BIND_SERVICE";
         CapabilityBoundingSet = "CAP_NET_BIND_SERVICE";
@@ -154,7 +169,18 @@ in {
       };
     };
 
-    environment.etc."acmecrab.json".source =
-      settingsFormat.generate "acmecrab-config.json" cfg;
+    networking.firewall = with cfg; {
+      allowedTCPPorts = [ api_port dns_port ];
+      allowedUDPPorts = [ dns_port ];
+    };
+
+    environment.etc."${name}.json".source = with cfg;
+      settingsFormat.generate "${name}-config.json" {
+        inherit domain ns_domain ns_admin txt_store_state_path api_timeout acl
+          addrs ns_records dns_tcp_timeout;
+        api_bind_addr = "${api_addr}:${toString api_port}";
+        dns_udp_bind_addr = "${dns_udp_addr}:${toString dns_port}";
+        dns_tcp_bind_addr = "${dns_tcp_addr}:${toString dns_port}";
+      };
   };
 }
