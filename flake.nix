@@ -84,7 +84,42 @@
         };
       }) // {
         # Nix OS module.
-        nixosModules.default = { config, lib, pkgs, ... }:
-          import ./module/default.nix { inherit config lib pkgs self; };
+        nixosModules.default = import ./module/default.nix;
+        # Example container.
+        # `sudo nixos-container create acmecrab --flake .#container`
+        # `sudo nixos-container start acmecrab`
+        nixosConfigurations.container = let
+          # NOTE(XXX): These values must match the output from `nixos-container create`.
+          host_ip = "10.233.1.1";
+          guest_ip = "10.233.1.2";
+        in nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          modules = [
+            self.nixosModules.default
+            ({ pkgs, ... }: {
+              nixpkgs.overlays = [
+                (self': super: {
+                  acmecrab = self.packages.${pkgs.system}.default;
+                })
+              ];
+              system.stateVersion = "22.11";
+              boot.isContainer = true;
+              networking.hostName = "acmecrab";
+              services.acmecrab = {
+                enable = true;
+                domain = "pki.example.com";
+                ns_admin = "pki@example.com";
+                ns_domain = "ns1.pki.example.com";
+                api_addr = guest_ip;
+                acl = { "${host_ip}/32" = [ "test" ]; };
+                addrs = {
+                  "pki.example.com" = [ guest_ip ];
+                  "ns1.pki.example.com" = [ guest_ip ];
+                };
+                ns_records = { "pki.example.com" = [ "ns1.pki.example.com" ]; };
+              };
+            })
+          ];
+        };
       };
 }
