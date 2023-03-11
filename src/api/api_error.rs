@@ -5,7 +5,7 @@ use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde_json::json;
 
-pub(crate) struct APIError(anyhow::Error);
+pub(super) struct APIError(anyhow::Error);
 
 impl IntoResponse for APIError {
     fn into_response(self) -> Response {
