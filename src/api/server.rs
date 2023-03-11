@@ -10,7 +10,7 @@ pub(super) struct AppState {
     pub txt_store: DynTxtStore,
 }
 
-pub(crate) fn new(
+pub fn new(
     config: SharedConfig,
     txt_store: DynTxtStore,
 ) -> impl Future<Output = hyper::Result<()>> {

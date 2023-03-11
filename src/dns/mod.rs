@@ -1,2 +1,2 @@
 mod handlers;
-pub(super) mod server;
+pub mod server;

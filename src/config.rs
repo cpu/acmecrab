@@ -14,11 +14,11 @@ use std::sync::Arc;
 use std::time::Duration;
 use trust_dns_server::client::rr::{LowerName, Name};
 
-pub(crate) type SharedConfig = Arc<Config>;
+pub type SharedConfig = Arc<Config>;
 
 #[serde_as]
 #[derive(Deserialize, Debug, Clone)]
-pub(crate) struct Config {
+pub struct Config {
     pub domain: LowerName,
     pub ns_domain: LowerName,
     pub ns_admin: String,

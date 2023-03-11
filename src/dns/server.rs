@@ -4,7 +4,7 @@ use crate::txt_store::DynTxtStore;
 use tokio::net::{TcpListener, UdpSocket};
 use trust_dns_server::ServerFuture;
 
-pub(crate) async fn new(
+pub async fn new(
     config: SharedConfig,
     txt_store: DynTxtStore,
 ) -> anyhow::Result<ServerFuture<Handler>> {

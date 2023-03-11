@@ -9,7 +9,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use trust_dns_server::client::rr::LowerName;
 
 #[derive(Default, Debug, Clone)]
-pub(crate) struct FileTxtStore {
+pub struct FileTxtStore {
     txt_store: InMemoryTxtStore,
     path: String,
 }

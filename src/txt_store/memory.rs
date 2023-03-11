@@ -5,7 +5,7 @@ use std::collections::{HashMap, VecDeque};
 use trust_dns_server::client::rr::LowerName;
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct InMemoryTxtStore {
+pub struct InMemoryTxtStore {
     txt_records: HashMap<LowerName, VecDeque<String>>,
 }
 
