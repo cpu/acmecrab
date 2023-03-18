@@ -64,9 +64,7 @@ fn tracing_init() {
 
 fn config_init(program_name: &str, config_file: Option<String>) -> Result<Shared> {
     match config_file {
-        None => {
-            return Err(anyhow!("usage: {program_name} /path/to/config.json"));
-        }
+        None => Err(anyhow!("usage: {program_name} /path/to/config.json")),
         Some(config_file) => {
             tracing::debug!("loaded config from {config_file}");
             let config = Config::try_from_file(&config_file)?;
