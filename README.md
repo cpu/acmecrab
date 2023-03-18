@@ -7,6 +7,8 @@ Self-hosted option for securely allowing ACME clients to update TXT records to s
 [acme-dns]: https://github.com/joohoi/acme-dns
 [cryptokey routing]: https://www.wireguard.com/#cryptokey-routing
 [wireguard]: https://www.wireguard.com
+[RFC-8555]: https://www.rfc-editor.org/rfc/rfc8555
+[DNS-01]: https://www.rfc-editor.org/rfc/rfc8555#section-8.4
 
 ![ACME Crab](./screenshot.png)
 
@@ -25,6 +27,7 @@ Self-hosted option for securely allowing ACME clients to update TXT records to s
   * [Why not RFC-2136?](#why-not-rfc-2136)
 * [API Examples](#api-examples)
 * [Building from Source](#building-from-source)
+* [TODO](#todo)
 * [Credits](#credits)
 
 ## Status
@@ -42,8 +45,7 @@ Self-hosted option for securely allowing ACME clients to update TXT records to s
 * Packaged as a [Nix] Flake.
 
 [update API]: https://github.com/joohoi/acme-dns#update-endpoint
-[RFC-8555]: https://www.rfc-editor.org/rfc/rfc8555
-[DNS-01]: https://www.rfc-editor.org/rfc/rfc8555#section-8.4
+
 [Nix]: https://nixos.org/
 
 ## Non-Features

@@ -1,4 +1,4 @@
-use crate::config::SharedConfig;
+use crate::config::Shared;
 use crate::error::Error;
 use crate::txt_store::DynTxtStore;
 use lazy_static::lazy_static;
@@ -16,7 +16,7 @@ use trust_dns_server::server::{Request, RequestHandler, ResponseHandler, Respons
 
 #[derive(Clone)]
 pub struct Handler {
-    config: SharedConfig,
+    config: Shared,
     txt_domain_set: HashSet<LowerName>,
     txt_store: DynTxtStore,
 }
@@ -27,7 +27,7 @@ lazy_static! {
 }
 
 impl Handler {
-    pub(super) fn new(config: SharedConfig, txt_store: DynTxtStore) -> Self {
+    pub(super) fn new(config: Shared, txt_store: DynTxtStore) -> Self {
         let txt_domain_set = Self::txt_domain_set(&config);
         Handler {
             config,
@@ -36,7 +36,7 @@ impl Handler {
         }
     }
 
-    fn txt_domain_set(config: &SharedConfig) -> HashSet<LowerName> {
+    fn txt_domain_set(config: &Shared) -> HashSet<LowerName> {
         // Build a HashSet of all of the names that appear in the allowed network configs. We use
         // this to quickly determine whether to return NXDOMAIN for a TXT lookup.
         let mut txt_domain_set: HashSet<LowerName> = HashSet::default();
@@ -176,9 +176,11 @@ impl Handler {
 
     async fn txt_rdata(&self, key: &LowerName) -> Vec<RData> {
         let read_store = self.txt_store.read().await;
-        let res = read_store.get_txt(key).await;
-        res.iter()
-            .map(|s| RData::TXT(TXT::new(vec![s.to_string()])))
+        let records = read_store.get_txt(key).await;
+        records
+            .iter()
+            .flatten()
+            .map(|x| RData::TXT(TXT::new(vec![(*x).to_string()])))
             .collect()
     }
 

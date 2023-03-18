@@ -1,22 +1,9 @@
-#![warn(clippy::pedantic)]
-mod api;
-mod config;
-mod crab;
-mod dns;
-mod error;
-mod txt_store;
-
-use crate::config::{Config, SharedConfig};
-use crate::error::Error;
-use crate::error::Error::DNSError;
-use crate::txt_store::file::FileTxtStore;
-use crate::txt_store::memory::InMemoryTxtStore;
-use crate::txt_store::DynTxtStore;
+use acmecrab::error::Error::DNSError;
+use acmecrab::{Config, Shared};
 use anyhow::{anyhow, Result};
 use is_terminal::IsTerminal;
 use std::sync::Arc;
 use tokio::signal;
-use tokio::sync::RwLock;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
@@ -30,19 +17,19 @@ async fn main() -> Result<()> {
     );
 
     let config = config_init(&program_name, config_file)?;
-    let txt_store = txt_store_from_config(&config).await?;
+    let txt_store = config.txt_store().await?;
 
     if std::io::stdout().is_terminal() {
-        println!("{}", crab::CRAB);
+        println!("{}", acmecrab::crab::CRAB);
     }
 
     tracing::info!("DNS listening on UDP {}", &config.dns_udp_bind_addr);
     tracing::info!("DNS listening on TCP {}", &config.dns_tcp_bind_addr);
-    let dns_server = dns::server::new(config.clone(), txt_store.clone()).await?;
+    let dns_server = acmecrab::dns::new(config.clone(), txt_store.clone()).await?;
     let dns_handle = tokio::spawn(dns_server.block_until_done());
 
     tracing::info!("API listening on {}", &config.api_bind_addr);
-    let api_server = api::server::new(config.clone(), txt_store.clone());
+    let api_server = acmecrab::api::new(config.clone(), txt_store.clone());
     let api_handle = tokio::spawn(api_server);
 
     // TODO(XXX): proper graceful shutdown.
@@ -75,30 +62,13 @@ fn tracing_init() {
         .init();
 }
 
-fn config_init(program_name: &str, config_file: Option<String>) -> Result<SharedConfig> {
+fn config_init(program_name: &str, config_file: Option<String>) -> Result<Shared> {
     match config_file {
-        None => {
-            return Err(anyhow!("usage: {program_name} /path/to/config.json"));
-        }
+        None => Err(anyhow!("usage: {program_name} /path/to/config.json")),
         Some(config_file) => {
             tracing::debug!("loaded config from {config_file}");
             let config = Config::try_from_file(&config_file)?;
             Ok(Arc::new(config))
-        }
-    }
-}
-
-async fn txt_store_from_config(config: &SharedConfig) -> Result<DynTxtStore, Error> {
-    match &config.txt_store_state_path {
-        Some(state_path) => {
-            tracing::debug!("using file-backed txt store: {state_path:?}");
-            Ok(Arc::new(RwLock::new(
-                FileTxtStore::try_from_file(state_path).await?,
-            )))
-        }
-        None => {
-            tracing::debug!("using in-memory txt store");
-            Ok(Arc::new(RwLock::new(InMemoryTxtStore::default())))
         }
     }
 }

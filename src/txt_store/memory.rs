@@ -1,11 +1,20 @@
+//! An in-memory implementation of the [`TxtStore`][super::TxtStore] trait.
+//!
+//! Makes no effort to persist TXT record values between restarts.
 use crate::error::Error;
 use crate::txt_store::TxtStore;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use trust_dns_server::client::rr::LowerName;
 
+/// An in-memory implementation of a dynamic TXT store. TXT values are stored in a [`HashMap`]
+/// keyed by FQDN. Up to two [`String`] TXT values are maintained per FQDN using a [`VecDeque`] so
+/// new values can be added to the front of the deque while old values fall off of the end.
+///
+/// Two TXT records per FQDN is sufficient to solve DNS-01 challenges for the base FQDN identifier
+/// as well as a wildcard FQDN identifier (e.g. `foo.example.com` and `*.foo.example.com`).
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
-pub(crate) struct InMemoryTxtStore {
+pub struct InMemoryTxtStore {
     txt_records: HashMap<LowerName, VecDeque<String>>,
 }
 
@@ -21,9 +30,11 @@ impl TxtStore for InMemoryTxtStore {
         Ok(())
     }
 
-    async fn get_txt(&self, fqdn: &LowerName) -> VecDeque<String> {
-        self.txt_records
-            .get(fqdn)
-            .map_or(VecDeque::default(), Clone::clone)
+    async fn get_txt(&self, fqdn: &LowerName) -> [Option<&String>; 2] {
+        let records = self.txt_records.get(fqdn);
+        match records {
+            None => [None, None],
+            Some(records) => [records.front(), records.back()],
+        }
     }
 }

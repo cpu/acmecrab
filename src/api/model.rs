@@ -12,7 +12,7 @@ pub(super) struct UpdateRecordRequest {
 }
 
 #[derive(thiserror::Error, Debug)]
-pub enum TxtValidationError {
+pub(super) enum TxtValidationError {
     #[error("invalid encoding: {0}")]
     InvalidEncoding(DecodeError),
     #[error("invalid decoded length: found {actual} bytes, expected {expected}")]

@@ -1,20 +1,37 @@
+//! An JSON file-backed implementation of the [`TxtStore`][super::TxtStore] trait.
+//!
+//! Wraps a [`InMemoryTxtStore`][super::memory::InMemoryTxtStore] instance, persisting
+//! updates to a JSON file on disk that can be reloaded across restarts.
 use crate::error::Error;
 use crate::txt_store::memory::InMemoryTxtStore;
 use crate::txt_store::TxtStore;
-use std::collections::VecDeque;
 use std::io::ErrorKind;
 use tokio::fs::File;
 use tokio::io;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use trust_dns_server::client::rr::LowerName;
 
+/// An file-backed implementation of a dynamic TXT store. After each update a JSON file-on disk is
+/// updated with the new data. This file can be reloaded across restarts to avoid losing state.
+///
+/// Wraps a [`InMemoryTxtStore`][super::memory::InMemoryTxtStore], operating the same way except
+/// for maintaining state beyond in-memory.
 #[derive(Default, Debug, Clone)]
-pub(crate) struct FileTxtStore {
+#[allow(clippy::module_name_repetitions)]
+pub struct FileTxtStore {
     txt_store: InMemoryTxtStore,
     path: String,
 }
 
 impl FileTxtStore {
+    /// Save the state of the TXT store as JSON to the store's configured path, or return an Error.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidJSON`] if a record in the store can't be serialized to JSON.
+    ///
+    /// Returns [`Error::IO`] if the serialized TXT store state can't be written to the backing
+    /// file path.
     pub async fn save(&self) -> Result<(), Error> {
         let data = serde_json::to_string_pretty(&self.txt_store)?;
         let mut output_file = File::create(&self.path).await?;
@@ -23,6 +40,14 @@ impl FileTxtStore {
         Ok(())
     }
 
+    /// Load a [`FileTxtStore`] from the JSON TXT record state located at the given path, or return
+    /// an Error.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidJSON`] if the JSON state file is invalid.
+    ///
+    /// Returns [`Error::IO`] if the path can't be opened or read.
     pub async fn try_from_file(p: &str) -> Result<Self, Error> {
         let contents = match File::open(p).await {
             Ok(mut f) => {
@@ -60,7 +85,7 @@ impl TxtStore for FileTxtStore {
         Ok(())
     }
 
-    async fn get_txt(&self, fqdn: &LowerName) -> VecDeque<String> {
+    async fn get_txt(&self, fqdn: &LowerName) -> [Option<&String>; 2] {
         self.txt_store.get_txt(fqdn).await
     }
 }
