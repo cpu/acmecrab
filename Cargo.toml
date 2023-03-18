@@ -11,7 +11,7 @@ axum-extra = "0.7.1"
 base64 = "0.21.0"
 hyper = "0.14.24"
 ipnetwork = "0.20.0"
-is-terminal = "0.4.4"
+is-terminal = "0.4.5"
 lazy_static = "1.4.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.68"
