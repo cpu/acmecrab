@@ -176,9 +176,11 @@ impl Handler {
 
     async fn txt_rdata(&self, key: &LowerName) -> Vec<RData> {
         let read_store = self.txt_store.read().await;
-        let res = read_store.get_txt(key).await;
-        res.iter()
-            .map(|s| RData::TXT(TXT::new(vec![s.to_string()])))
+        let records = read_store.get_txt(key).await;
+        records
+            .iter()
+            .flatten()
+            .map(|x| RData::TXT(TXT::new(vec![(*x).to_string()])))
             .collect()
     }
 

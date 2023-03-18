@@ -11,7 +11,6 @@
 //! [DNS-01]: https://www.rfc-editor.org/rfc/rfc8555#section-8.4
 
 use crate::error::Error;
-use std::collections::VecDeque;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use trust_dns_server::client::rr::LowerName;
@@ -40,5 +39,5 @@ pub trait TxtStore {
     async fn add_txt(&mut self, fqdn: LowerName, value: String) -> Result<(), Error>;
 
     /// Get the TXT record values for the given FQDN (if any).
-    async fn get_txt(&self, fqdn: &LowerName) -> VecDeque<String>;
+    async fn get_txt(&self, fqdn: &LowerName) -> [Option<&String>; 2];
 }

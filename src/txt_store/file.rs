@@ -5,7 +5,6 @@
 use crate::error::Error;
 use crate::txt_store::memory::InMemoryTxtStore;
 use crate::txt_store::TxtStore;
-use std::collections::VecDeque;
 use std::io::ErrorKind;
 use tokio::fs::File;
 use tokio::io;
@@ -86,7 +85,7 @@ impl TxtStore for FileTxtStore {
         Ok(())
     }
 
-    async fn get_txt(&self, fqdn: &LowerName) -> VecDeque<String> {
+    async fn get_txt(&self, fqdn: &LowerName) -> [Option<&String>; 2] {
         self.txt_store.get_txt(fqdn).await
     }
 }

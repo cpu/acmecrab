@@ -30,9 +30,11 @@ impl TxtStore for InMemoryTxtStore {
         Ok(())
     }
 
-    async fn get_txt(&self, fqdn: &LowerName) -> VecDeque<String> {
-        self.txt_records
-            .get(fqdn)
-            .map_or(VecDeque::default(), Clone::clone)
+    async fn get_txt(&self, fqdn: &LowerName) -> [Option<&String>; 2] {
+        let records = self.txt_records.get(fqdn);
+        match records {
+            None => [None, None],
+            Some(records) => [records.front(), records.back()],
+        }
     }
 }
