@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.70"
 async-trait = "0.1.67"
-axum = "0.6.7"
+axum = "0.6.12"
 axum-extra = "0.7.2"
 base64 = "0.21.0"
 hyper = "0.14.25"
